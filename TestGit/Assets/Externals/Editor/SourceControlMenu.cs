@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using DTI.SourceControl.Git;
 using DTI.SourceControl.Svn;
 using UnityEditor;
 using UnityEngine;
@@ -44,20 +45,6 @@ namespace DTI.SourceControl
             var statusList = GetStatusSvn(selected);
             var window = EditorWindow.GetWindow<SvnCommitWindow>("Commit");
             window.StatusList = statusList;
-            window.Show();
-        }
-
-        [MenuItem("DTI/Source Control/Git/Options")]
-        public static void ShowGitOptionsWindow()
-        {
-            var window = EditorWindow.GetWindow<OptionsWindow>("Git Options");
-            window.Show(VCSType.Git);
-        }
-
-        [MenuItem("DTI/Source Control/Git/Choose Branch")]
-        public static void ShowGitBranchesWindow()
-        {
-            var window = EditorWindow.GetWindow<BranchesWindow>("Choose Branch");
             window.Show();
         }
 
@@ -119,5 +106,26 @@ namespace DTI.SourceControl
 
             return folders;
         }
+
+        [MenuItem("DTI/Source Control/Git/Options")]
+        public static void ShowGitOptionsWindow()
+        {
+            var window = EditorWindow.GetWindow<OptionsWindow>("Git Options");
+            window.Show(VCSType.Git);
+        }
+
+        [MenuItem("DTI/Source Control/Git/Choose Branch")]
+        public static void ShowGitBranchesWindow()
+        {
+            var manager = new GitManager();
+            manager.GetStatus();
+            manager.Fetch();
+            var branches = manager.GetBranches();
+
+            var window = EditorWindow.GetWindow<BranchesWindow>("Choose Branch");
+            window.Branches = branches;
+            window.Show();
+        }
+
     }
 }
