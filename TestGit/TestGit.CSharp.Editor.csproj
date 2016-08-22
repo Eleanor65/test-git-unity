@@ -108,32 +108,38 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Assets\Externals\Editor\ConsoleTools\Cmd.cs" />
-    <Compile Include="Assets\Externals\Editor\ConsoleTools\ConsoleTool.cs" />
-    <Compile Include="Assets\Externals\Editor\ConsoleTools\IParser.cs" />
-    <Compile Include="Assets\Externals\Editor\ConsoleTools\IPattern.cs" />
-    <Compile Include="Assets\Externals\Editor\ConsoleTools\IProcessLauncher.cs" />
-    <Compile Include="Assets\Externals\Editor\ConsoleTools\ProcessLauncher.cs" />
-    <Compile Include="Assets\Externals\Editor\ConsoleTools\RegexParser.cs" />
-    <Compile Include="Assets\Externals\Editor\ConsoleTools\RegexPattern.cs" />
-    <Compile Include="Assets\Externals\Editor\ConsoleTools\Result.cs" />
-    <Compile Include="Assets\Externals\Editor\ConsoleTools\RuntimePlatform.cs" />
-    <Compile Include="Assets\Externals\Editor\ConsoleTools\RuntimePlatformHelper.cs" />
-    <Compile Include="Assets\Externals\Editor\ConsoleTools\ThreadUtility.cs" />
-    <Compile Include="Assets\Externals\Editor\FileStatus.cs" />
-    <Compile Include="Assets\Externals\Editor\Git\BranchesWindow.cs" />
-    <Compile Include="Assets\Externals\Editor\Git\GitManager.cs" />
-    <Compile Include="Assets\Externals\Editor\Git\GitTools.cs" />
-    <Compile Include="Assets\Externals\Editor\OptionsWindow.cs" />
-    <Compile Include="Assets\Externals\Editor\SourceControlMenu.cs" />
-    <Compile Include="Assets\Externals\Editor\Status.cs" />
-    <Compile Include="Assets\Externals\Editor\Svn\HierarchyNode.cs" />
-    <Compile Include="Assets\Externals\Editor\Svn\PrefsKeys.cs" />
-    <Compile Include="Assets\Externals\Editor\Svn\SvnCommitWindow.cs" />
-    <Compile Include="Assets\Externals\Editor\Svn\SvnManager.cs" />
-    <Compile Include="Assets\Externals\Editor\Svn\SvnOptionsWindow.cs" />
-    <Compile Include="Assets\Externals\Editor\Svn\SvnTools.cs" />
-    <Compile Include="Assets\Externals\Editor\VCSTypes.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\Branch.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\CommitWindow.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\ConsoleTools\Cmd.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\ConsoleTools\ConsoleTool.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\ConsoleTools\IParser.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\ConsoleTools\IPattern.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\ConsoleTools\IProcessLauncher.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\ConsoleTools\ProcessLauncher.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\ConsoleTools\RegexParser.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\ConsoleTools\RegexPattern.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\ConsoleTools\Result.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\ConsoleTools\RuntimePlatform.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\ConsoleTools\RuntimePlatformHelper.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\ConsoleTools\ThreadUtility.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\FileStatus.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\Git\BranchesWindow.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\Git\GitBranch.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\Git\GitManager.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\Git\GitTools.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\HierarchyNode.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\ISourceConrolTools.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\ISourceControlManager.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\OptionsWindow.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\Properties\AssemblyInfo.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\SourceControlMenu.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\Status.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\Svn\SvnFileStatus.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\Svn\SvnManager.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\Svn\SvnTools.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\obj\Debug\TemporaryGeneratedFile_036C0B5B-1481-4323-8D20-8F5ADCB23D92.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\obj\Debug\TemporaryGeneratedFile_5937a670-0e60-4077-877b-f7221da3dda1.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlLibrary\obj\Debug\TemporaryGeneratedFile_E7A71F73-0F8D-4B9B-B56E-8E70B10BC5D3.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\SyntaxTree\UnityVS\2013\UnityVS.CSharp.targets" />
 </Project>

@@ -1,0 +1,25 @@
+﻿using System;
+using System.Collections.Generic;
+
+namespace DTI.SourceControl
+{
+    public class Status
+    {
+        public List<String> Added;
+        public List<String> Modified;
+        public List<String> Deleted;
+        public List<String> Missing;
+        public List<String> NotUnderVC;
+        public List<String> Conflicted;
+
+        public Status()
+        {
+            Added = new List<String>();
+            Modified = new List<String>();
+            Deleted = new List<String>();
+            Missing = new List<String>();
+            NotUnderVC = new List<String>();
+            Conflicted = new List<String>();
+        }
+    }
+}
