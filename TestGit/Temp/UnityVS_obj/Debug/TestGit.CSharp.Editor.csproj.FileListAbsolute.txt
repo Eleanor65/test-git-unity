@@ -38,6 +38,5 @@ D:\WORK\test-git-unity2\TestGit\Temp\UnityVS_bin\Debug\UnityEditor.OSXStandalone
 D:\WORK\test-git-unity2\TestGit\Temp\UnityVS_bin\Debug\SyntaxTree.VisualStudio.Unity.Bridge.xml
 D:\WORK\test-git-unity2\TestGit\Temp\UnityVS_bin\Debug\UnityEditor.iOS.Extensions.Xcode.xml
 D:\WORK\test-git-unity2\TestGit\Temp\UnityVS_bin\Debug\UnityEditor.iOS.Extensions.Common.xml
-D:\WORK\test-git-unity2\TestGit\Temp\UnityVS_obj\Debug\TestGit.CSharp.Editor.csprojResolveAssemblyReference.cache
 D:\WORK\test-git-unity2\TestGit\Temp\UnityVS_obj\Debug\Assembly-CSharp-Editor.dll
 D:\WORK\test-git-unity2\TestGit\Temp\UnityVS_obj\Debug\Assembly-CSharp-Editor.pdb

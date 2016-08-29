@@ -1,0 +1,5 @@
+D:\WORK\test-git-unity2\UnitTest\bin\Debug\UnitTest.dll
+D:\WORK\test-git-unity2\UnitTest\bin\Debug\UnitTest.pdb
+D:\WORK\test-git-unity2\UnitTest\obj\Debug\UnitTest.csprojResolveAssemblyReference.cache
+D:\WORK\test-git-unity2\UnitTest\obj\Debug\UnitTest.dll
+D:\WORK\test-git-unity2\UnitTest\obj\Debug\UnitTest.pdb
