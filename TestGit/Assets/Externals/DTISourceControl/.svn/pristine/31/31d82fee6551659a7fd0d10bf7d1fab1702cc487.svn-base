@@ -1,0 +1,12 @@
+﻿namespace DTI.SourceControl.ConsoleTools
+{
+	internal interface IParser
+	{
+		Result Parse(string log);
+	}
+
+	internal interface IParser<T> : IParser
+	{
+		Result<T> Parse(string log);
+	}
+}

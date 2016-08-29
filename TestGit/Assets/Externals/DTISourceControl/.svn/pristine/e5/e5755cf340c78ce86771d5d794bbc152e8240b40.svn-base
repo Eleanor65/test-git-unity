@@ -1,0 +1,20 @@
+﻿namespace DTI.SourceControl.Svn
+{
+	internal static class SvnTools
+	{
+		public static string Svn
+		{
+			get
+			{
+				if (RuntimePlatformHelper.GetCurrentPlatform() == RuntimePlatform.Windows)
+				{
+					return "svn.exe";
+				}
+				else
+				{
+					return "svn";
+				}
+			}
+		}
+	}
+}
