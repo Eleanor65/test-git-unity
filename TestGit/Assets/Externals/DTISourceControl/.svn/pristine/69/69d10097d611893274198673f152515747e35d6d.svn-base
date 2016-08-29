@@ -1,0 +1,235 @@
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace DTI.SourceControl.Svn
+{
+    public class SvnCommitWindow : EditorWindow
+    {
+        private const int BUTTONWIDTH = 70;
+        private List<FileStatus> _statusList;
+        private List<HierarchyNode> _nodes; 
+
+        private Vector2 _scrollPos;
+        private String _message;
+        private bool _commitAll;
+
+        public List<FileStatus> StatusList
+        {
+            get { return _statusList; }
+            set
+            {
+                _statusList = value;
+                SetNodes();
+            }
+        }
+
+        private bool CommitAll
+        {
+            get { return _commitAll; }
+            set
+            {
+                if (_commitAll != value)
+                {
+                    _commitAll = value;
+                    _statusList = _statusList.Select(x =>
+                    {
+                        if (x.Commit != value)
+                            x.Commit = value;
+                        return x;
+                    }).ToList();
+                }
+            }
+        }
+
+        private void OnGUI()
+        {
+            GUILayout.Label("Message:");
+            _message = EditorGUILayout.TextArea(_message);
+
+            ShowFiles();
+            ShowButtons();
+        }
+
+        private void ShowFiles()
+        {
+            _scrollPos = EditorGUILayout.BeginScrollView(_scrollPos);
+            if (_statusList.Count == 0)
+            {
+                EditorGUILayout.LabelField("Nothing to commit.");
+            }
+            else
+            {
+                //GUILayout.BeginHorizontal();
+                //ShowCommitValues();
+                //ShowStatus();
+                //ShowName();
+                //ShowExtension();
+                //ShowPath();
+                //GUILayout.EndHorizontal();
+                foreach (var node in _nodes)
+                {
+                    ShowNode(node, 0);
+                }
+            }
+            EditorGUILayout.EndScrollView();
+        }
+
+        private void ShowNode(HierarchyNode node, int level)
+        {
+            GUILayout.BeginHorizontal();
+            node.Commit = EditorGUILayout.Toggle(node.Commit, GUILayout.Width(15));
+            var displayName = node.Parent == null ? node.Value.RelativePath : node.Value.Name;
+            if (node.Children == null)
+            {
+                EditorGUILayout.LabelField(displayName);
+            }
+            else
+            {
+                node.Foldout = EditorGUILayout.Foldout(node.Foldout, displayName);
+                level++;
+
+                if (node.Foldout)
+                {
+                    GUILayout.BeginVertical();
+                    GUILayout.Space(18);
+                    foreach (var childNode in node.Children)
+                    {
+                        ShowNode(childNode, level);
+                    }
+                    GUILayout.EndVertical();
+                }
+            }
+            GUILayout.EndHorizontal();
+        }
+
+        private void ShowButtons()
+        {
+            GUILayout.BeginHorizontal();
+            EditorGUI.BeginDisabledGroup(_statusList.All(x => !(x.Commit)));
+            if (GUILayout.Button("Commit", GUILayout.Width(BUTTONWIDTH)))
+            {
+                var commitList = _statusList.Where(x => x.Commit);
+                if (commitList.Any(x => x.Status == Status.Conflicted))
+                {
+                    EditorUtility.DisplayDialog("Can't commit!",
+                        String.Format(
+                            "Conflicted files have been chosen for commit. Please, resolve coflicts before commit.\n\nConflicted files:\n{0}",
+                            String.Join("\n",
+                                commitList.Where(x => x.Status == Status.Conflicted)
+                                    .Select(x => x.RelativePath)
+                                    .ToArray())), "Ok");
+                }
+                else
+                {
+                    if (String.IsNullOrEmpty(_message))
+                        if (EditorUtility.DisplayDialog("Message is empty!",
+                            "Message is empty. Are you sure you want to commit whithout a message?", "Yes", "No"))
+                            Commit(commitList);
+
+                    Commit(commitList);
+                }
+            }
+            EditorGUI.EndDisabledGroup();
+            if (GUILayout.Button("Cancel", GUILayout.Width(BUTTONWIDTH)))
+                this.Close();
+            GUILayout.EndHorizontal();
+        }
+
+        private void ShowCommitValues()
+        {
+            GUILayout.BeginVertical();
+            GUILayout.Space(5);
+            CommitAll = EditorGUILayout.Toggle(CommitAll);
+            for (int i = 0; i < _statusList.Count; i++)
+            {
+                _statusList[i].Commit = EditorGUILayout.Toggle(_statusList[i].Commit);
+            }
+            GUILayout.EndVertical();
+        }
+
+        private void ShowStatus()
+        {
+            GUILayout.BeginVertical();
+            if (GUILayout.Button("Status"))
+                _statusList = _statusList.OrderBy(x => x.Status).ToList();
+            foreach (FileStatus status in _statusList)
+                EditorGUILayout.LabelField(status.Status.ToString());
+            GUILayout.EndVertical();
+        }
+
+        private void ShowName()
+        {
+            GUILayout.BeginVertical();
+            if (GUILayout.Button("Name"))
+                _statusList = _statusList.OrderBy(x => x.Name).ToList();
+            foreach (FileStatus status in _statusList)
+                EditorGUILayout.LabelField(status.Name);
+            GUILayout.EndVertical();
+        }
+
+        private void ShowExtension()
+        {
+            GUILayout.BeginVertical();
+            if (GUILayout.Button("Extension"))
+                _statusList = _statusList.OrderBy(x => x.Extension).ToList();
+            foreach (FileStatus status in _statusList)
+                EditorGUILayout.LabelField(status.Extension);
+            GUILayout.EndVertical();
+        }
+
+        private void ShowPath()
+        {
+            GUILayout.BeginVertical();
+            if (GUILayout.Button("Path"))
+                _statusList = _statusList.OrderBy(x => x.RelativePath).ToList();
+            foreach (FileStatus status in _statusList)
+                EditorGUILayout.LabelField(status.RelativePath);
+            GUILayout.EndVertical();
+        }
+
+        private void Commit(IEnumerable<FileStatus> commitList)
+        {
+            var svnManager = new SvnManager();
+            svnManager.AddDeleteCommit(commitList, _message ?? String.Empty);
+            this.Close();
+        }
+
+        private void SetNodes()
+        {
+            _nodes =
+                _statusList.Where(x => _statusList.All(y => !(y.FullPath.Equals(Path.GetDirectoryName(x.FullPath)))))
+                    .Select(x => new HierarchyNode(x))
+                    .ToList();
+
+            _nodes = SetChildren(_nodes);
+        }
+
+        private List<HierarchyNode> SetChildren(List<HierarchyNode> nodes)
+        {
+            foreach (HierarchyNode node in nodes)
+            {
+                foreach (var fileStatus in _statusList)
+                {
+                    if (IsParent(node.Value, fileStatus))
+                    {
+                        new HierarchyNode(fileStatus, node);
+                    }
+                }
+                if (node.Children != null)
+                    node.Children = SetChildren(node.Children);
+            }
+
+            return nodes;
+        }
+
+        private bool IsParent(FileStatus parent, FileStatus child)
+        {
+            return parent.FullPath.Equals(Path.GetDirectoryName(child.FullPath));
+        }
+    }
+}
