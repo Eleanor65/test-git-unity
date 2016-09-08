@@ -9,30 +9,39 @@ using UnityEngine;
 
 namespace DTI.SourceControl.Svn
 {
-	internal class SvnManager : ISourceControlManager
+    internal class SvnManager : SourceControlManagerBase
 	{
-        private const string OperationUpdate = "update";
-        private const string OperationCommit = "commit";
+        private const string OPERATIONUPDATE = "update";
+        private const string OPERATIONCOMMIT = "commit";
+        private const string OPTIONDEPTHEMPTY = "--depth empty";
+        private const string OPTIONPARENTS = "--parents";
 	    private readonly SvnTools _tools = new SvnTools();
+        private readonly string _repositoryFolder;
+        private readonly string _svn;
 
-	    public void ShowOptionsWindow()
+        public SvnManager(string directory)
+        {
+            _repositoryFolder = directory;
+            _svn = EditorPrefs.GetString(_tools.PathKey);
+        }
+
+	    public override void ShowOptionsWindow()
         {
             var window = EditorWindow.GetWindow<OptionsWindow>("Svn Options");
 	        window.Tools = _tools;
             window.Show();
         }
 
-        public void UpdateAll()
+        public override void UpdateAll()
         {
-            string projectPath = GetProjectPath();
-            projectPath = AddQuatationMarks(projectPath);
+            string projectPath = _repositoryFolder;
             Debug.Log("Updating current project");
 
             var cmd = new Cmd()
             {
-                BaseDirectory = _tools.SvnDirectory,
-                Command = _tools.Executable,
-                Args = String.Format("{0} {1} --accept p", OperationUpdate, projectPath),
+                BaseDirectory = projectPath,
+                Command = _svn,
+                Args = String.Format("{0} --accept p", OPERATIONUPDATE),
                 Patterns = new[]
                 {
                     "^(?<skip>Updating '.*':)$",
@@ -41,6 +50,9 @@ namespace DTI.SourceControl.Svn
                     "^(?<skip>[ADU][ ]+.+)$",
                     "^(?<skip>Summary of conflicts:)$",
                     "^(?<skip>[]+Text conflicts: [0-9]+)$",
+                    "^(?<skip>Fetching external item into '.+':)$",
+                    @"^(?<skip>Updated external to revision \d+[.])$",
+                    @"^(?<skip>External at revision \d+[.])$",
 
                     "^(?<out>C[ ]+.+)$",
 
@@ -51,7 +63,7 @@ namespace DTI.SourceControl.Svn
             var outResult = cmd.Run();
             if (outResult.Count != 0)
             {
-                ShowConflicts(outResult, OperationUpdate);
+                ShowConflicts(outResult, OPERATIONUPDATE);
             }
             else
             {
@@ -59,8 +71,14 @@ namespace DTI.SourceControl.Svn
             }
         }
 
-	    public void ShowCommitWindow()
+	    public override void ShowCommitWindowAll()
 	    {
+            var statusList = GetProjectStatus();
+	        GetAndShowCommitWindow(statusList);
+	    }
+
+        public override void ShowCommitWindowSelected()
+        {
             var selected = GetSelectedAssetPaths();
             if (selected.Length == 0)
             {
@@ -70,41 +88,50 @@ namespace DTI.SourceControl.Svn
             }
 
             var statusList = GetStatus(selected);
-            var window = EditorWindow.GetWindow<CommitWindow>("Commit");
-            window.StatusList = statusList;
-	        window.OnCommit = OnCommit;
-            window.Show();
-	    }
+            GetAndShowCommitWindow(statusList);
+        }
 
-	    public void ShowChooseBranchWindow()
+	    public override void ShowChooseBranchWindow()
 	    {
 	        EditorUtility.DisplayDialog("No branches",
 	            "Your current project uses SVN as source conrol system.\n\nNo branches!", "Ok");
 	    }
 
-        private List<FileStatus> GetStatus(string[] paths)
+        private List<FileStatus> GetProjectStatus()
         {
-            var fileStatusList = GetStatusForFiles(paths);
-
-            if (fileStatusList.Any(x => x.Status == Status.Added || x.Status == Status.NotUnderVC))
-                fileStatusList = AddAddedFolders(fileStatusList);
-
-            if (fileStatusList.Any(x => x.Status == Status.NotFound))
-                fileStatusList = AddMissingFolders(fileStatusList);
+            var fileStatusList = GetStatusForFiles(new[] {Application.dataPath}, false);
+            fileStatusList = AddNUVCFiles(fileStatusList);
+            fileStatusList = DeleteMissingFiles(fileStatusList);
 
             return fileStatusList;
         }
 
-        private List<FileStatus> GetStatusForFiles(string[] paths)
+        private List<FileStatus> GetStatus(string[] paths)
         {
-            Debug.Log("Getting status for: " + String.Join("\n", paths));
-            var correctedPaths = AddQuatationMarks(paths);
+            var fileStatusList = GetStatusForFiles(paths, false);
+
+            fileStatusList = AddAddedParentFolders(fileStatusList);
+            fileStatusList = AddNUVCFolders(fileStatusList);
+            fileStatusList = DeleteMissingFiles(fileStatusList);
+
+            return fileStatusList;
+        }
+
+        private List<FileStatus> GetStatusForFiles(string[] paths, bool depthEmpty = true)
+        {
+            var args = "status";
+            if (depthEmpty)
+                args += " --depth empty";
+            else
+                paths = RemoveChildPaths(paths);
+            paths = AddQuatationMarks(paths);
+            args += " " + String.Join(" ", paths);
 
             var cmd = new Cmd()
             {
                 BaseDirectory = _tools.SvnDirectory,
-                Command = _tools.Executable,
-                Args = "status " + String.Join(" ", correctedPaths) + " --depth empty",
+                Command = _svn,
+                Args = args,
                 Patterns = new[]
                 {
                     "^(?<skip>Summary of conflicts:)$",
@@ -123,56 +150,74 @@ namespace DTI.SourceControl.Svn
             return fileStatusList;
         }
 
-        private List<FileStatus> AddAddedFolders(List<FileStatus> list)
+        private List<FileStatus> AddAddedParentFolders(List<FileStatus> list)
         {
             var added = list.Where(x => x.Status == Status.Added || x.Status == Status.NotUnderVC);
+            if (!added.Any())
+                return list;
+
             var folders = added.Select(x => Path.GetDirectoryName(x.FullPath)).Distinct().ToArray();
-            var folderMetas = folders.Where(x => File.Exists(x + ".meta")).Select(x => x + ".meta");
+            var folderMetas = folders.Where(x => File.Exists(x + METAEXTENSION)).Select(x => x + METAEXTENSION);
             folders = folders.Concat(folderMetas).ToArray();
 
             var folderList = GetStatusForFiles(folders);
-            if (folderList.Any(x => x.Status == Status.Added))
+            var metas = folderList.Where(x => x.Extension.Equals(METAEXTENSION)).ToList();
+            list = FileStatus.UpdateList(list, metas);
+
+            var addedFolders = folderList.Where(x => x.Status == Status.Added);
+            if (addedFolders.Any())
             {
-                var addedFolders = folderList.Where(x => x.Status == Status.Added);
-                addedFolders = AddAddedFolders(addedFolders.ToList());
+                addedFolders = AddAddedParentFolders(addedFolders.ToList());
                 list = FileStatus.UpdateList(list, addedFolders.ToList());
             }
 
             return list;
         }
 
-        private List<FileStatus> AddMissingFolders(List<FileStatus> list)
+        private List<FileStatus> AddNUVCFolders(List<FileStatus> list)
         {
-            var notFound = list.Where(x => x.Status == Status.NotFound);
-            var folders = notFound.Select(x => Path.GetDirectoryName(x.FullPath)).Distinct().ToArray();
-            var folderMetas = folders.Where(x => File.Exists(x + ".meta")).Select(x => x + ".meta");
-            folders = folders.Concat(folderMetas).ToArray();
+            var notFoundPaths = list.Where(x => x.Status == Status.NotFound).Select(x=> x.FullPath).ToArray();
+            if (!notFoundPaths.Any())
+                return list;
 
-            var folderList = GetStatusForFiles(folders);
-            if (folderList.Any(x => x.Status == Status.NotUnderVC))
-            {
-                var foldersNUVC = folderList.Where(x => x.Status == Status.NotUnderVC).Select(x => x.FullPath).ToArray();
-                Add(foldersNUVC);
-                var folderListAdded = GetStatusForFiles(foldersNUVC);
-                folderList = FileStatus.UpdateList(folderList, folderListAdded);
-            }
-            if (folderList.Any(x => x.Status == Status.NotFound))
-            {
-                folderList = AddMissingFolders(folderList);
-            }
-            list = FileStatus.UpdateList(list, folderList);
-
-            notFound = GetStatusForFiles(notFound.Select(x => x.FullPath).ToArray());
-            if (notFound.Any(x => x.Status == Status.NotUnderVC))
-            {
-                var notUnderVC = notFound.Where(x => x.Status == Status.NotUnderVC).Select(x => x.FullPath).ToArray();
-                Add(notUnderVC);
-                var added = GetStatusForFiles(notUnderVC);
-                notFound = FileStatus.UpdateList(notFound.ToList(), added);
-            }
-            list = FileStatus.UpdateList(list, notFound.ToList());
+            var added = Add(notFoundPaths, OPTIONPARENTS);
+            var metasPaths = added.Where(x => File.Exists(x.FullPath + METAEXTENSION)).Select(x => x.FullPath + METAEXTENSION).ToArray();
+            if (metasPaths.Any())
+                list = FileStatus.UpdateList(list, GetStatusForFiles(metasPaths));
+            list = FileStatus.UpdateList(list, added);
 
             return list;
+        }
+
+        private List<FileStatus> AddNUVCFiles(List<FileStatus> list)
+        {
+            var notUnderVC = list.Where(x => x.Status == Status.NotUnderVC).Select(x => x.FullPath).ToArray();
+            if (!notUnderVC.Any())
+                return list;
+            
+            var added = Add(notUnderVC);
+            if (added.Any())
+                list = FileStatus.UpdateList(list, added);
+
+            return list;
+        }
+
+        private List<FileStatus> DeleteMissingFiles(List<FileStatus> list)
+        {
+            var missing = list.Where(x => x.Status == Status.Missing).Select(x => x.FullPath).ToArray();
+            if (missing.Length == 0)
+                return list;
+
+            Delete(missing);
+            return GetStatusForFiles(list.Select(x => x.FullPath).ToArray());
+        }
+
+        private void GetAndShowCommitWindow(List<FileStatus> statusList)
+        {
+            var window = EditorWindow.GetWindow<CommitWindow>("Commit");
+            window.StatusList = statusList;
+            window.OnCommit = OnCommit;
+            window.Show();
         }
 
         private void OnCommit(CommitWindow window)
@@ -190,45 +235,55 @@ namespace DTI.SourceControl.Svn
             }
             else
             {
-                if (String.IsNullOrEmpty(window.Message))
-                {
-                    if (!EditorUtility.DisplayDialog("Message is empty!",
-                        "Message is empty. Are you sure you want to commit without a message?", "Yes", "No"))
-                        return;
-                }
-                this.Commit(commitList, window.Message ?? String.Empty);
+                Commit(commitList, window.Message ?? String.Empty);
                 window.Close();
             }
         }
 
         private void Commit(IEnumerable<FileStatus> statusList, string messege)
         {
-            if (statusList.Any(x => x.Status == Status.NotUnderVC))
-                Add(statusList.Where(x => x.Status == Status.NotUnderVC).Select(x => x.FullPath).ToArray());
-            if (statusList.Any(x => x.Status == Status.Missing))
-                Delete(statusList.Where(x => x.Status == Status.Missing).Select(x => x.FullPath).ToArray());
+            var notUnderVC = statusList.Where(x => x.Status == Status.NotUnderVC).Select(x => x.FullPath).ToArray();
+            if (notUnderVC.Length != 0)
+                Add(notUnderVC, OPTIONDEPTHEMPTY);
             CommitFiles(statusList.Select(x => x.FullPath).ToArray(), messege);
         }
 
-        private void Add(string[] paths)
+        private List<FileStatus> Add(string[] paths, params string[] options)
         {
-            Debug.Log("Adding files: " + String.Join("\n", paths));
-            var correctedPaths = AddQuatationMarks(paths);
+            var args = "add";
+            var depthEmpy = false;
+            foreach (var option in options)
+            {
+                args += " " + option;
+                if (option.Equals(OPTIONDEPTHEMPTY))
+                    depthEmpy = true;
+            }
+            if (!depthEmpy)
+                paths = RemoveChildPaths(paths);
+
+            paths = AddQuatationMarks(paths);
+            args += " " + String.Join(" ", paths);
 
             var cmd = new Cmd()
             {
                 BaseDirectory = _tools.SvnDirectory,
-                Command = _tools.Executable,
-                Args = "add " + String.Join(" ", correctedPaths) + " --depth empty",
+                Command = _svn,
+                Args = args,
                 Patterns = new[]
                 {
-                    "^(?<skip>[A][ ]+.+)$",
+                    @"^(?<out>[A]\s+([(]bin[)]\s+)?.+)$",
 
                     "^(?<error>svn: E.+)$",
                     "^(?<error>svn: warning: W.+)$",
                 }
             };
-            cmd.Run();
+            var outResult = cmd.Run();
+            var fileStatusList = new List<FileStatus>();
+            if (outResult.Count == 0)
+                return fileStatusList;
+
+            fileStatusList = outResult.Select(x => new SvnFileStatus(x) as FileStatus).ToList();
+            return fileStatusList;
         }
 
         private void Delete(string[] paths)
@@ -239,7 +294,7 @@ namespace DTI.SourceControl.Svn
             var cmd = new Cmd()
             {
                 BaseDirectory = _tools.SvnDirectory,
-                Command = _tools.Executable,
+                Command = _svn,
                 Args = "delete " + String.Join(" ", correctedPaths),
                 Patterns = new[]
                 {
@@ -260,8 +315,8 @@ namespace DTI.SourceControl.Svn
             var cmd = new Cmd()
             {
                 BaseDirectory = _tools.SvnDirectory,
-                Command = _tools.Executable,
-                Args = String.Format("{0} {1} -m \"{2}\" --depth empty", OperationCommit, String.Join(" ", correctedPaths), message),
+                Command = _svn,
+                Args = String.Format("{0} {1} -m \"{2}\" --depth empty", OPERATIONCOMMIT, String.Join(" ", correctedPaths), message),
                 Patterns = new[]
                 {
                     "^(?<skip>[ADU][ ]+.+)$",
@@ -281,69 +336,12 @@ namespace DTI.SourceControl.Svn
             var outResult = cmd.Run();
             if (outResult.Count != 0)
             {
-                ShowConflicts(outResult, OperationCommit);
+                ShowConflicts(outResult, OPERATIONCOMMIT);
             }
             else
             {
                 Debug.Log("Commit has ended successfully!");
             }
-        }
-
-	    private string GetProjectPath()
-	    {
-            var dir = Path.GetDirectoryName(Application.dataPath);
-	        while (!String.IsNullOrEmpty(dir))
-	        {
-	            var path = Path.Combine(dir, ".svn");
-	            if (Directory.Exists(path))
-	                return Path.GetDirectoryName(path);
-	            dir = Path.GetDirectoryName(dir);
-	        }
-	        return null;
-	    }
-
-        private string AddQuatationMarks(string line)
-        {
-            var newLine = String.Copy(line);
-            if (newLine.Contains(" "))
-                newLine = '"' + newLine + '"';
-            return newLine;
-        }
-
-        private string[] AddQuatationMarks(string[] lines)
-        {
-            var newLines = new string[lines.Length];
-            for (int i = 0; i < lines.Length; i++)
-                newLines[i] = AddQuatationMarks(lines[i]);
-            return newLines;
-        }
-
-        private static string[] GetSelectedAssetPaths()
-        {
-            var paths = Selection.assetGUIDs.Select(x => AssetDatabase.GUIDToAssetPath(x)).ToList();
-            var assets = paths.Select(x => AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(x)).ToList();
-
-            var folders = assets.Where(x => x is DefaultAsset);
-            if (folders.Count() != 0)
-            {
-                var assetsInFoldersGUIDs =
-                    AssetDatabase.FindAssets("", folders.Select(x => AssetDatabase.GetAssetPath(x)).ToArray());
-                var assetsInFoldersPaths = assetsInFoldersGUIDs.Select(x => AssetDatabase.GUIDToAssetPath(x));
-                assets.AddRange(assetsInFoldersPaths.Select(x => AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(x)));
-                folders = assets.Where(x => x is DefaultAsset);
-            }
-            assets = assets.Where(x => !(x is DefaultAsset)).ToList();
-
-            paths = EditorUtility.CollectDependencies(assets.ToArray()).Select(x => AssetDatabase.GetAssetPath(x)).ToList();
-            paths = paths.Where(x => AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(x) != null).ToList();
-
-            paths.AddRange(folders.Select(x => AssetDatabase.GetAssetPath(x)));
-            paths = paths.Distinct().ToList();
-            var metas = paths.Where(x => File.Exists(x + ".meta")).Select(x => x + ".meta").ToList();
-            paths.AddRange(metas);
-            paths = paths.Select(x => Path.Combine(Path.GetDirectoryName(Application.dataPath), x)).ToList();
-
-            return paths.ToArray();
         }
 
         private void ShowConflicts(IEnumerable<string> outResult, string operation)
@@ -354,6 +352,13 @@ namespace DTI.SourceControl.Svn
                 operation, outResult.Count(), conflicts);
             EditorUtility.DisplayDialog("Conflicts were found!", message, "Ok");
             Debug.LogError(message);
+        }
+
+        private string[] RemoveChildPaths(string[] paths)
+        {
+            var onlyNeeded = paths.Where(x => paths.All(y => !x.StartsWith(y) || x.Equals(y + METAEXTENSION) || x == y)).ToArray();
+
+            return onlyNeeded;
         }
 	}
 }

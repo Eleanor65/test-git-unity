@@ -7,11 +7,9 @@ namespace DTI.SourceControl
     {
         private HierarchyNode _parent;
 
-        public FileStatus Value;
+        public FileStatus Value { get; private set; }
         public List<HierarchyNode> Children;
-        public HierarchyNode Meta;
         public bool Foldout = true;
-        public bool Committable = true;
 
         public HierarchyNode Parent
         {
@@ -61,12 +59,5 @@ namespace DTI.SourceControl
             Value = value;
             Parent = parent;
         }
-
-        //public HierarchyNode(FileStatus value, HierarchyNode parent, bool committable)
-        //{
-        //    Value = value;
-        //    Parent = parent;
-        //    Committable = committable;
-        //}
     }
 }

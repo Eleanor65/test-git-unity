@@ -49,28 +49,44 @@ namespace DTI.SourceControl.Git
                 @"^(?<error>\s+.*)$",
                 "^(?<error>Please commit your changes or stash them before you can merge[.])$",
                 "^(?<error>Aborting)$",
-                
-                //"^(?<skip>)$",
             });
             var outResult = cmd.Run();
             EditorUtility.DisplayDialog("Update results", String.Join("\n", outResult.ToArray()), "Ok");
         }
 
-        public override void ShowCommitWindow()
+        public override void ShowCommitWindowAll()
         {
             UnstageAll();
             var statusList = GetStatus();
-            var window = EditorWindow.GetWindow<CommitWindow>("Commit");
-            window.StatusList = statusList.ToList();
-            window.OnCommit = OnCommit;
-            window.Show();
+            GetAndShowCommitwindow(statusList);
+        }
+
+        public override void ShowCommitWindowSelected()
+        {
+            var selected = GetSelectedAssetPaths();
+            if (selected.Length == 0)
+            {
+                EditorUtility.DisplayDialog("Error",
+                    "No assets were chosen to commit. Choose some asset/assets to commit.", "OK");
+                return;
+            }
+
+            var statusList = GetStatus(selected);
+            GetAndShowCommitwindow(statusList);
         }
 
         public override void ShowChooseBranchWindow()
         {
-            var window = EditorWindow.GetWindow<BranchesWindow>("Choose branch");
             Fetch();
-            window.Branches = GetBranches();
+            var branches = GetBranches();
+            if (!branches.Any())
+            {
+                EditorUtility.DisplayDialog("No branches.", "There are no branches exept for this one.", "Ok");
+                return;
+            }
+
+            var window = EditorWindow.GetWindow<BranchesWindow>("Choose branch");
+            window.Branches = branches;
             window.OnChooseBranch = OnChooseBranch;
             window.Show();
         }
@@ -88,8 +104,6 @@ namespace DTI.SourceControl.Git
                 "^(?<skip>[ ]+remotes/origin/HEAD -> origin/.+)$",
 
                 "^(?<out>[*]?[ ]+.+)$",
-                //@"^(?<out>[*]?[ ]+remotes/origin/\w+)$",
-                //"^(?<out>)$",
             });
             var outResult = cmd.Run();
 
@@ -157,17 +171,29 @@ namespace DTI.SourceControl.Git
             });
         }
 
-        private IEnumerable<FileStatus> GetStatus()
+        private IEnumerable<FileStatus> GetStatus(params string[] paths)
         {
-            var cmd = GetCmd("status -s", new[] {"^(?<out>[ MADRCU?][ MDUA?][ ].+)$"});
+            var args = "status -s " + AddQuatationMarks(Application.dataPath);
+
+            var cmd = GetCmd(args, new[] {"^(?<out>[ MADRCU?][ MDUA?][ ].+)$"});
             var outResult = cmd.Run();
             var fileStatusList = outResult.Select(x => new GitFileStatus(x, _repositoryFolder) as FileStatus).ToList();
             fileStatusList.RemoveAll(x => String.IsNullOrEmpty(x.FullPath));
 
             fileStatusList = GetAddedFilesInFolders(fileStatusList);
 
+            if (paths.Any())
+                fileStatusList = fileStatusList.Where(x => paths.Any(y=> x.FullPath.Replace("\\", "/").Equals(y.Replace("\\", "/")))).ToList();
             
             return fileStatusList;
+        }
+
+        private void GetAndShowCommitwindow(IEnumerable<FileStatus> statusList)
+        {
+            var window = EditorWindow.GetWindow<CommitWindow>("Commit");
+            window.StatusList = statusList.ToList();
+            window.OnCommit = OnCommit;
+            window.Show();
         }
 
         private List<FileStatus> GetAddedFilesInFolders(List<FileStatus> fileStatusList)
@@ -194,18 +220,11 @@ namespace DTI.SourceControl.Git
 
         private void OnCommit(CommitWindow window)
         {
-            if (String.IsNullOrEmpty(window.Message))
-            {
-                if (!EditorUtility.DisplayDialog("Message is empty!",
-                    "Message is empty. Are you sure you want to commit without a message?", "Yes", "No"))
-                    return;
-            }
             try
             {
                 UnstageAll();
 
-                var files = window.StatusList.Where(x => x.Commit).Select(x => x.FullPath).ToArray();
-                files = AddQuatationMarks(files);
+                var files = window.StatusList.Where(x => x.Commit).Select(x => x.FullPath);
                 Add(files);
 
                 Commit(window.Message);
@@ -221,6 +240,7 @@ namespace DTI.SourceControl.Git
 
         private void Add(IEnumerable<string> files)
         {
+            files = AddQuatationMarks(files.ToArray());
             var filesLine = String.Join(" ", files.ToArray());
             var cmd = GetCmd("add " + filesLine, new[]
             {

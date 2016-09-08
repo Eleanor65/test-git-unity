@@ -9,17 +9,17 @@ namespace DTI.SourceControl
     {
         protected const string PATHGROUP = "path";
 
-        public Status Status;
-        public string FullPath;
-        public string Name;
-        public string Extension;
-        public string RelativePath;
+        public Status Status { get; protected set; }
+        public string FullPath { get; private set; }
+        public string Name { get; private set; }
+        public string Extension { get; private set; }
+        public string RelativePath { get; private set; }
         public bool Commit;
 
         protected void SetPath(string line)
         {
             FullPath = line;
-            RelativePath = line.Substring(Path.GetDirectoryName(Application.dataPath).Length);
+            RelativePath = line.Substring(Path.GetDirectoryName(Application.dataPath).Length + 1);
             Name = Path.GetFileName(line);
             Extension = Path.GetExtension(Name);
         }
@@ -28,14 +28,18 @@ namespace DTI.SourceControl
         {
             dst = dst.Select(x =>
             {
-                if (src.Any(y => y.FullPath.Equals(x.FullPath)))
-                {
-                    x.Status = src.First(y => y.FullPath.Equals(x.FullPath)).Status;
-                }
+                var sameFileStatus = src.FirstOrDefault(y => y.FullPath.Equals(x.FullPath));
+                if (sameFileStatus != null)
+                    x.Status = sameFileStatus.Status;
                 return x;
             }).ToList();
             dst.AddRange(src.Where(y => dst.All(x => !y.FullPath.Equals(x.FullPath))));
             return dst;
+        }
+
+        public override string ToString()
+        {
+            return FullPath;
         }
     }
 }

@@ -7,7 +7,7 @@ namespace DTI.SourceControl.Svn
     {
         public SvnFileStatus(string line)
         {
-            var regex = new Regex(String.Format("^([?!DAMC][ ]+)(?<{0}>[^ ].*)$", PATHGROUP));
+            var regex = new Regex(String.Format(@"^([?!DAMC]\s+([(]bin[)]\s+)?)(?<{0}>[^ ].*)$", PATHGROUP));
             var match = regex.Match(line);
             if (match.Success)
             {
@@ -27,7 +27,7 @@ namespace DTI.SourceControl.Svn
                 return;
             }
 
-            SetPath(line);
+            throw new ArgumentException("Can't parse line: " + line);
         }
 
         private void SetStatus(string line)

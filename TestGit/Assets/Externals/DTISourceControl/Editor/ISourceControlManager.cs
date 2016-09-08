@@ -6,7 +6,9 @@
 
         void UpdateAll();
 
-        void ShowCommitWindow();
+        void ShowCommitWindowAll();
+
+        void ShowCommitWindowSelected();
 
         void ShowChooseBranchWindow();
     }

@@ -23,11 +23,18 @@ namespace DTI.SourceControl
             manager.UpdateAll();
         }
 
-        [MenuItem("DTI/Source Control/Commit", false, 2)]
+        [MenuItem("DTI/Source Control/Commit All", false, 2)]
         public static void ShowCommitWindow()
         {
             var manager = GetControlManager();
-            manager.ShowCommitWindow();
+            manager.ShowCommitWindowAll();
+        }
+
+        [MenuItem("Assets/Source Control/Commit")]
+        public static void ShowCommitWindowSelected()
+        {
+            var manager = GetControlManager();
+            manager.ShowCommitWindowSelected();
         }
 
         [MenuItem("DTI/Source Control/Choose Branch", false, 3)]
@@ -44,7 +51,7 @@ namespace DTI.SourceControl
             {
                 var path = Path.Combine(dir, ".svn");
                 if (Directory.Exists(path))
-                    return new SvnManager();
+                    return new SvnManager(dir);
                 path = Path.Combine(dir, ".git");
                 if (Directory.Exists(path))
                     return new GitManager(dir);

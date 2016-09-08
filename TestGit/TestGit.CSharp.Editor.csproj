@@ -132,11 +132,18 @@
     <Compile Include="Assets\Externals\DTISourceControl\Editor\ISourceConrolTools.cs" />
     <Compile Include="Assets\Externals\DTISourceControl\Editor\ISourceControlManager.cs" />
     <Compile Include="Assets\Externals\DTISourceControl\Editor\OptionsWindow.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlManagerBase.cs" />
     <Compile Include="Assets\Externals\DTISourceControl\Editor\SourceControlMenu.cs" />
     <Compile Include="Assets\Externals\DTISourceControl\Editor\Status.cs" />
     <Compile Include="Assets\Externals\DTISourceControl\Editor\Svn\SvnFileStatus.cs" />
     <Compile Include="Assets\Externals\DTISourceControl\Editor\Svn\SvnManager.cs" />
     <Compile Include="Assets\Externals\DTISourceControl\Editor\Svn\SvnTools.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\Validation\ICommitValidator.cs" />
+    <Compile Include="Assets\Externals\DTISourceControl\Editor\Validation\NullReferenceValidator.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Assets\testFolder\1.txt" />
+    <None Include="Assets\text.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\SyntaxTree\UnityVS\2013\UnityVS.CSharp.targets" />
 </Project>

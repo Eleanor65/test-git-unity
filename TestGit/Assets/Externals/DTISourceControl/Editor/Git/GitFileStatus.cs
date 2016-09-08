@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Text.RegularExpressions;
+using UnityEngine;
 
 namespace DTI.SourceControl.Git
 {
@@ -13,9 +14,14 @@ namespace DTI.SourceControl.Git
             if (match.Success)
             {
                 var path = match.Groups[PATHGROUP].Value;
+                if (path[0].Equals('\"') && path[path.Length - 1].Equals('\"'))
+                    path = path.Substring(1, path.Length - 2);
                 path = Path.Combine(repositoryPath, path);
-                SetStatus(line);
+                if (!path.Replace("/", "\\").StartsWith(Application.dataPath.Replace("/", "\\"))) 
+                    return;
+
                 SetPath(path);
+                SetStatus(line);
             }
         }
 

@@ -44,7 +44,7 @@ namespace DTI.SourceControl.ConsoleTools
 			var result = _tool.Run();
 		    if (!result.Succeeded)
 		    {
-		        EditorUtility.DisplayDialog("Commit Failed!", result.ErrorMessage, "OK");
+		        EditorUtility.DisplayDialog("Operation failed!", result.ErrorMessage, "OK");
 		        throw new Exception(result.ErrorMessage);
 		    }
 		    if (result.OutResult != null)
