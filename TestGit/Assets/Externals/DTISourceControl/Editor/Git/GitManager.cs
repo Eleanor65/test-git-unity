@@ -144,12 +144,19 @@ namespace DTI.SourceControl.Git
 
         private void CheckoutBranch(Branch branch)
         {
-            var cmd = GetCmd("checkout " + branch.FullName, new[]
+            var args = "checkout ";
+            if (branch.Local)
+                args += branch.FullName;
+            else
+                args += String.Format("-b {0} {1}", branch.Name, branch.FullName);
+            var cmd = GetCmd(args, new[]
             {
                 "^(?<error>error: Your local changes to the following files would be overwritten by checkout:)$",
                 @"^(?<error>\s+.*)$",
                 "^(?<error>Please commit your changes or stash them before you can switch branches[.])$",
                 "^(?<error>Aborting)$",
+
+                @"^(?<skip>M\s+.+)$",
 
                 "^(?<out>Branch .+ set up to track remote branch .+ from origin[.])$",
                 "^(?<out>Switched to a new branch '.+')$",
