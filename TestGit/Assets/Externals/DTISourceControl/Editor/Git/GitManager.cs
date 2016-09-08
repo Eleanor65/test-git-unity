@@ -152,7 +152,7 @@ namespace DTI.SourceControl.Git
             var cmd = GetCmd(args, new[]
             {
                 @"^(?<skip>M\s+.+)$",
-                "^(?<skip>\\s+[(]use \"git push\" to publish your local commits[)])$",
+                "^(?<skip>\\s+[(]use \"git (push|pull)\" to publish your local commits[)])$",
 
                 "^(?<error>error: Your local changes to the following files would be overwritten by checkout:)$",
                 @"^(?<error>\s+.*)$",
