@@ -151,12 +151,13 @@ namespace DTI.SourceControl.Git
                 args += String.Format("-b {0} {1}", branch.Name, branch.FullName);
             var cmd = GetCmd(args, new[]
             {
+                @"^(?<skip>M\s+.+)$",
+                "^(?<skip>\\s+[(]use \"git push\" to publish your local commits[)])$",
+
                 "^(?<error>error: Your local changes to the following files would be overwritten by checkout:)$",
                 @"^(?<error>\s+.*)$",
                 "^(?<error>Please commit your changes or stash them before you can switch branches[.])$",
                 "^(?<error>Aborting)$",
-
-                @"^(?<skip>M\s+.+)$",
 
                 "^(?<out>Branch .+ set up to track remote branch .+ from origin[.])$",
                 "^(?<out>Switched to a new branch '.+')$",
