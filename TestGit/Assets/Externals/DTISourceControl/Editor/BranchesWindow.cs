@@ -57,8 +57,8 @@ namespace DTI.SourceControl
         private void InitializeBranches()
         {
             _currentBranch = _branches.Single(x => x.Current);
-            
-            _searchBranches = _branches;
+
+            _searchBranches = _branches.OrderBy(x => x.Name);
             _selectedBranch = _searchBranches.First();
         }
 
